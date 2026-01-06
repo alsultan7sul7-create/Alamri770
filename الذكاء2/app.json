@@ -1,0 +1,41 @@
+{
+  "name": "Student Performance Prediction System",
+  "description": "نظام توقع أداء الطلاب باستخدام الذكاء الاصطناعي",
+  "repository": "https://github.com/your-username/student-performance-prediction",
+  "logo": "https://via.placeholder.com/200x200/667eea/ffffff?text=AI",
+  "keywords": [
+    "flask",
+    "machine-learning",
+    "linear-regression",
+    "student-performance",
+    "artificial-intelligence",
+    "education"
+  ],
+  "image": "heroku/python",
+  "stack": "heroku-22",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "FLASK_ENV": {
+      "description": "Flask environment",
+      "value": "production"
+    },
+    "SECRET_KEY": {
+      "description": "Secret key for Flask sessions",
+      "generator": "secret"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [],
+  "scripts": {
+    "postdeploy": "echo 'Deployment completed successfully!'"
+  }
+}

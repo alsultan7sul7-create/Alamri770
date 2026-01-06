@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}الإحصائيات العامة - نظام توقع أداء الطلاب{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white text-center py-5">
+                    <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                    <h1 class="display-4 fw-bold">الإحصائيات العامة</h1>
+                    <p class="lead">نظرة شاملة على استخدام النظام والتنبؤات</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stats-card" style="padding: 15px; min-height: 120px;">
+                <i class="fas fa-users fa-lg mb-2" style="font-size: 1.5rem;"></i>
+                <h4 class="fw-bold mb-1" id="total-users" style="font-size: 1.8rem;">{{ total_users or 0 }}</h4>
+                <p class="mb-0" style="font-size: 0.9rem;">إجمالي المستخدمين</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stats-card" style="padding: 15px; min-height: 120px;">
+                <i class="fas fa-chart-line fa-lg mb-2" style="font-size: 1.5rem;"></i>
+                <h4 class="fw-bold mb-1" id="total-predictions" style="font-size: 1.8rem;">{{ total_predictions or 0 }}</h4>
+                <p class="mb-0" style="font-size: 0.9rem;">إجمالي التنبؤات</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stats-card" style="padding: 15px; min-height: 120px;">
+                <i class="fas fa-calendar-day fa-lg mb-2" style="font-size: 1.5rem;"></i>
+                <h4 class="fw-bold mb-1" id="today-predictions" style="font-size: 1.8rem;">{{ today_predictions or 0 }}</h4>
+                <p class="mb-0" style="font-size: 0.9rem;">تنبؤات اليوم</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stats-card" style="padding: 15px; min-height: 120px;">
+                <i class="fas fa-trophy fa-lg mb-2" style="font-size: 1.5rem;"></i>
+                <h4 class="fw-bold mb-1" id="avg-performance" style="font-size: 1.8rem;">{{ "%.1f"|format(avg_performance or 0) }}</h4>
+                <p class="mb-0" style="font-size: 0.9rem;">متوسط الأداء</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Distribution -->
+    <div class="row mb-4">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header bg-primary text-white py-2">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        توزيع مستويات الأداء
+                    </h5>
+                </div>
+                <div class="card-body" style="padding: 20px;">
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white py-2">
+                    <h5 class="mb-0">
+                        <i class="fas fa-medal me-2"></i>
+                        أفضل النتائج
+                    </h5>
+                </div>
+                <div class="card-body" style="padding: 20px;">
+                    {% if top_performances %}
+                        {% for performance in top_performances %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style="background: #f8f9fa;">
+                            <span class="fw-semibold" style="font-size: 0.9rem;">المرتبة {{ loop.index }}</span>
+                            <span class="badge bg-success" style="font-size: 0.8rem;">{{ "%.1f"|format(performance) }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">لا توجد بيانات متاحة</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Trends -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        اتجاهات الاستخدام (آخر 7 أيام)
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="usageChart" width="400" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Factors Analysis -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        العوامل الأكثر تأثيراً
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold">ساعات الدراسة</span>
+                            <span class="text-muted">85%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold">الدرجات السابقة</span>
+                            <span class="text-muted">70%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" style="width: 70%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold">الأنشطة اللامنهجية</span>
+                            <span class="text-muted">45%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold">ساعات النوم</span>
+                            <span class="text-muted">35%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-secondary" style="width: 35%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        نصائح لتحسين الأداء
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>زيادة ساعات الدراسة:</strong> أهم عامل لتحسين الأداء
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>الاستفادة من الدرجات السابقة:</strong> مؤشر قوي للأداء المستقبلي
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-running me-2"></i>
+                        <strong>المشاركة في الأنشطة:</strong> تحسن الأداء العام
+                    </div>
+                    <div class="alert alert-secondary">
+                        <i class="fas fa-bed me-2"></i>
+                        <strong>النوم الكافي:</strong> ضروري للتركيز والأداء
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Performance Distribution Chart
+const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+const performanceChart = new Chart(performanceCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['ممتاز (90-100)', 'جيد جداً (80-89)', 'جيد (70-79)', 'مقبول (60-69)', 'ضعيف (0-59)'],
+        datasets: [{
+            data: [{{ performance_distribution.excellent or 0 }}, 
+                   {{ performance_distribution.very_good or 0 }}, 
+                   {{ performance_distribution.good or 0 }}, 
+                   {{ performance_distribution.acceptable or 0 }}, 
+                   {{ performance_distribution.poor or 0 }}],
+            backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#dc3545'],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 15,
+                    font: {
+                        size: 11
+                    }
+                }
+            }
+        },
+        cutout: '50%'
+    }
+});
+
+// Usage Trends Chart
+const usageCtx = document.getElementById('usageChart').getContext('2d');
+const usageChart = new Chart(usageCtx, {
+    type: 'line',
+    data: {
+        labels: {{ usage_labels | tojson | safe }},
+        datasets: [{
+            label: 'عدد التنبؤات',
+            data: {{ usage_data | tojson | safe }},
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Auto-refresh stats every 30 seconds
+setInterval(function() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('total-users').textContent = data.total_users;
+            document.getElementById('total-predictions').textContent = data.total_predictions;
+            document.getElementById('today-predictions').textContent = data.today_predictions;
+            document.getElementById('avg-performance').textContent = data.avg_performance.toFixed(1);
+        })
+        .catch(error => console.log('Error updating stats:', error));
+}, 30000);
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: student-ai-predictor
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python flask_app_enhanced.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        value: student-ai-2026-render
+      - key: PORT
+        value: 10000

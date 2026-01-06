@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}معلومات النموذج - نظام توقع أداء الطلاب{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-brain fa-3x mb-3"></i>
+                    <h1 class="display-4 fw-bold">معلومات النموذج</h1>
+                    <p class="lead">تفاصيل تقنية عن نموذج الذكاء الاصطناعي المستخدم</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if model_metrics %}
+    <!-- Model Performance -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-percentage fa-2x mb-3"></i>
+                <h3 class="fw-bold">{{ "%.2f"|format(model_metrics.test_r2 * 100) }}%</h3>
+                <p class="mb-0">دقة النموذج</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-chart-line fa-2x mb-3"></i>
+                <h3 class="fw-bold">{{ "%.2f"|format(model_metrics.test_rmse) }}</h3>
+                <p class="mb-0">خطأ RMSE</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-database fa-2x mb-3"></i>
+                <h3 class="fw-bold">{{ "{:,}".format(model_metrics.total_samples) }}</h3>
+                <p class="mb-0">عينات التدريب</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <i class="fas fa-cogs fa-2x mb-3"></i>
+                <h3 class="fw-bold">{{ model_metrics.feature_names|length }}</h3>
+                <p class="mb-0">متغيرات الإدخال</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Equation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-calculator me-2"></i>
+                        معادلة النموذج
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="bg-light p-4 rounded">
+                        <h5 class="text-center mb-3">Performance Index = </h5>
+                        <div class="text-center">
+                            <span class="badge bg-primary fs-6 me-2">{{ "%.4f"|format(model_metrics.intercept) }}</span>
+                            {% for i in range(model_metrics.coefficients|length) %}
+                                {% if model_metrics.coefficients[i] >= 0 %}
+                                    <span class="text-success">+</span>
+                                {% endif %}
+                                <span class="badge bg-secondary fs-6 me-1">{{ "%.4f"|format(model_metrics.coefficients[i]) }}</span>
+                                <span class="text-muted">×</span>
+                                <span class="fw-bold me-2">{{ model_metrics.feature_names[i].replace('_', ' ') }}</span>
+                                {% if not loop.last %}<br class="d-md-none">{% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Importance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        أهمية المتغيرات
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% for i in range(model_metrics.coefficients|length) %}
+                    {% set importance = (model_metrics.coefficients[i] | abs) %}
+                    {% set max_importance = (model_metrics.coefficients | map('abs') | max) %}
+                    {% set percentage = (importance / max_importance * 100) %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold">{{ model_metrics.feature_names[i].replace('_', ' ') }}</span>
+                            <span class="text-muted">{{ "%.4f"|format(model_metrics.coefficients[i]) }}</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ percentage }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        تفسير المعاملات
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>كيفية قراءة المعاملات:</strong><br>
+                        كل معامل يوضح مقدار التأثير على النتيجة النهائية
+                    </div>
+                    
+                    {% set feature_explanations = [
+                        "كل ساعة دراسة إضافية تحسن الأداء",
+                        "كل نقطة إضافية في الدرجات السابقة تحسن الأداء", 
+                        "المشاركة في الأنشطة اللامنهجية تحسن الأداء",
+                        "كل ساعة نوم إضافية تحسن الأداء",
+                        "كل ورقة أسئلة إضافية تحسن الأداء"
+                    ] %}
+                    
+                    {% for i in range(model_metrics.coefficients|length) %}
+                    <div class="mb-2">
+                        <strong>{{ model_metrics.feature_names[i].replace('_', ' ') }}:</strong><br>
+                        <small class="text-muted">
+                            {{ feature_explanations[i] }} بـ {{ "%.4f"|format(model_metrics.coefficients[i]) }} نقطة
+                        </small>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Details -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        التفاصيل التقنية
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary">مقاييس الأداء:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>R² Score (التدريب):</strong> {{ "%.4f"|format(model_metrics.train_r2) }}</li>
+                                <li><strong>R² Score (الاختبار):</strong> {{ "%.4f"|format(model_metrics.test_r2) }}</li>
+                                <li><strong>RMSE (التدريب):</strong> {{ "%.4f"|format(model_metrics.train_rmse) }}</li>
+                                <li><strong>RMSE (الاختبار):</strong> {{ "%.4f"|format(model_metrics.test_rmse) }}</li>
+                                <li><strong>MAE (التدريب):</strong> {{ "%.4f"|format(model_metrics.train_mae) }}</li>
+                                <li><strong>MAE (الاختبار):</strong> {{ "%.4f"|format(model_metrics.test_mae) }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary">معلومات البيانات:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>إجمالي العينات:</strong> {{ "{:,}".format(model_metrics.total_samples) }}</li>
+                                <li><strong>عينات التدريب:</strong> {{ "{:,}".format(model_metrics.training_samples) }}</li>
+                                <li><strong>عينات الاختبار:</strong> {{ "{:,}".format(model_metrics.test_samples) }}</li>
+                                <li><strong>نسبة التقسيم:</strong> 80% تدريب / 20% اختبار</li>
+                                <li><strong>خوارزمية:</strong> Linear Regression</li>
+                                <li><strong>مكتبة:</strong> scikit-learn</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-warning text-center">
+        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+        <h4>معلومات النموذج غير متاحة</h4>
+        <p>لم يتم تحميل النموذج بعد. يرجى التأكد من وجود ملف البيانات.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - نظام توقع أداء الطلاب{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="fw-bold text-primary mb-2">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                مرحباً، {{ session.full_name }}
+                            </h2>
+                            <p class="text-muted mb-0">اكتشف إمكاناتك الأكاديمية باستخدام نموذج الذكاء الاصطناعي المتقدم</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            {% if model_metrics %}
+                            <div class="stats-card">
+                                <i class="fas fa-brain fa-2x mb-2"></i>
+                                <h4 class="fw-bold">{{ "%.2f"|format(model_metrics.test_r2 * 100) }}%</h4>
+                                <small>دقة النموذج</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Input Form -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        إدخال بيانات الطالب
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form id="predictionForm">
+                        <div class="mb-3">
+                            <label for="hours_studied" class="form-label fw-bold">
+                                <i class="fas fa-clock me-2 text-primary"></i>
+                                ساعات الدراسة اليومية
+                            </label>
+                            <input type="range" class="form-range" id="hours_studied" name="hours_studied" 
+                                   min="1" max="12" value="5" oninput="updateValue('hours_studied')">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">1 ساعة</small>
+                                <span id="hours_studied_value" class="fw-bold text-primary">5 ساعات</span>
+                                <small class="text-muted">12 ساعة</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="previous_scores" class="form-label fw-bold">
+                                <i class="fas fa-chart-line me-2 text-primary"></i>
+                                الدرجات السابقة (من 100)
+                            </label>
+                            <input type="range" class="form-range" id="previous_scores" name="previous_scores" 
+                                   min="0" max="100" value="70" oninput="updateValue('previous_scores')">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">0</small>
+                                <span id="previous_scores_value" class="fw-bold text-primary">70</span>
+                                <small class="text-muted">100</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="extracurricular" class="form-label fw-bold">
+                                <i class="fas fa-running me-2 text-primary"></i>
+                                الأنشطة اللامنهجية
+                            </label>
+                            <select class="form-select" id="extracurricular" name="extracurricular">
+                                <option value="Yes">نعم، أشارك في الأنشطة</option>
+                                <option value="No">لا، لا أشارك في الأنشطة</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="sleep_hours" class="form-label fw-bold">
+                                <i class="fas fa-bed me-2 text-primary"></i>
+                                ساعات النوم اليومية
+                            </label>
+                            <input type="range" class="form-range" id="sleep_hours" name="sleep_hours" 
+                                   min="3" max="12" value="7" oninput="updateValue('sleep_hours')">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">3 ساعات</small>
+                                <span id="sleep_hours_value" class="fw-bold text-primary">7 ساعات</span>
+                                <small class="text-muted">12 ساعة</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="sample_papers" class="form-label fw-bold">
+                                <i class="fas fa-file-alt me-2 text-primary"></i>
+                                عدد أوراق الأسئلة المُمارسة
+                            </label>
+                            <input type="range" class="form-range" id="sample_papers" name="sample_papers" 
+                                   min="0" max="20" value="3" oninput="updateValue('sample_papers')">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">0</small>
+                                <span id="sample_papers_value" class="fw-bold text-primary">3</span>
+                                <small class="text-muted">20</small>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">
+                            <i class="fas fa-magic me-2"></i>
+                            توقع الأداء الأكاديمي
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        نتيجة التوقع
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div id="resultsContainer" class="text-center">
+                        <div class="feature-icon mx-auto mb-3">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h5 class="text-muted">أدخل بياناتك واضغط "توقع الأداء"</h5>
+                        <p class="text-muted">سيقوم النموذج بتحليل بياناتك وإعطائك توقعاً دقيقاً لأدائك الأكاديمي</p>
+                    </div>
+
+                    <div id="predictionResults" style="display: none;">
+                        <!-- Progress Bar -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">مؤشر الأداء المتوقع:</label>
+                            <div class="progress mb-2">
+                                <div id="performanceBar" class="progress-bar" role="progressbar" style="width: 0%">
+                                    <span id="performanceScore">0</span>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <span id="performanceLevel" class="badge fs-6"></span>
+                            </div>
+                        </div>
+
+                        <!-- Recommendations -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-primary">
+                                <i class="fas fa-lightbulb me-2"></i>
+                                التوصيات لتحسين الأداء:
+                            </h6>
+                            <div id="recommendationsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Predictions -->
+    {% if predictions %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        آخر التنبؤات
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ساعات الدراسة</th>
+                                    <th>الدرجات السابقة</th>
+                                    <th>الأنشطة</th>
+                                    <th>ساعات النوم</th>
+                                    <th>أوراق الأسئلة</th>
+                                    <th>الأداء المتوقع</th>
+                                    <th>التاريخ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prediction in predictions %}
+                                <tr>
+                                    <td>{{ prediction[0] }}</td>
+                                    <td>{{ prediction[1] }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if prediction[2] == 'نعم' else 'secondary' }}">
+                                            {{ prediction[2] }}
+                                        </span>
+                                    </td>
+                                    <td>{{ prediction[3] }}</td>
+                                    <td>{{ prediction[4] }}</td>
+                                    <td>
+                                        <span class="fw-bold text-primary">{{ "%.1f"|format(prediction[5]) }}</span>
+                                    </td>
+                                    <td>{{ prediction[6][:16] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center">
+                        <a href="{{ url_for('history') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-eye me-2"></i>
+                            عرض جميع التنبؤات
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+function updateValue(fieldName) {
+    const input = document.getElementById(fieldName);
+    const display = document.getElementById(fieldName + '_value');
+    let value = input.value;
+    
+    if (fieldName === 'hours_studied' || fieldName === 'sleep_hours') {
+        display.textContent = value + ' ساعات';
+    } else if (fieldName === 'sample_papers') {
+        display.textContent = value;
+    } else {
+        display.textContent = value;
+    }
+}
+
+document.getElementById('predictionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const button = this.querySelector('button[type="submit"]');
+    
+    // تعطيل الزر أثناء المعالجة
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحليل...';
+    
+    fetch('/predict', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayResults(data);
+        } else {
+            alert('خطأ: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء التنبؤ');
+    })
+    .finally(() => {
+        // إعادة تفعيل الزر
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-magic me-2"></i>توقع الأداء الأكاديمي';
+    });
+});
+
+function displayResults(data) {
+    // إخفاء الرسالة الافتراضية
+    document.getElementById('resultsContainer').style.display = 'none';
+    
+    // عرض النتائج
+    const resultsDiv = document.getElementById('predictionResults');
+    resultsDiv.style.display = 'block';
+    
+    // تحديث شريط التقدم
+    const progressBar = document.getElementById('performanceBar');
+    const scoreSpan = document.getElementById('performanceScore');
+    const levelSpan = document.getElementById('performanceLevel');
+    
+    progressBar.style.width = data.prediction + '%';
+    progressBar.style.backgroundColor = data.performance_color;
+    scoreSpan.textContent = data.prediction;
+    
+    levelSpan.textContent = data.performance_level;
+    levelSpan.style.backgroundColor = data.performance_color;
+    
+    // عرض التوصيات
+    const recommendationsList = document.getElementById('recommendationsList');
+    recommendationsList.innerHTML = '';
+    
+    data.recommendations.forEach(recommendation => {
+        const div = document.createElement('div');
+        div.className = 'recommendation-item';
+        div.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i>' + recommendation;
+        recommendationsList.appendChild(div);
+    });
+    
+    // تمرير سلس إلى النتائج
+    resultsDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+// تهيئة القيم عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    updateValue('hours_studied');
+    updateValue('previous_scores');
+    updateValue('sleep_hours');
+    updateValue('sample_papers');
+});
+</script>
+{% endblock %}
+{% endblock %}

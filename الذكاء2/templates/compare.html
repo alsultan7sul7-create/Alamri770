@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}مقارنة الأداء - نظام توقع أداء الطلاب{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                <div class="card-body text-white text-center py-5">
+                    <i class="fas fa-balance-scale fa-3x mb-3"></i>
+                    <h1 class="display-4 fw-bold">مقارنة الأداء</h1>
+                    <p class="lead">قارن أداءك مع المتوسط العام والطلاب الآخرين</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-user fa-2x text-primary mb-3"></i>
+                    <h4 class="fw-bold">أداؤك الحالي</h4>
+                    <h2 class="text-primary">{{ "%.1f"|format(user_avg or 0) }}</h2>
+                    <p class="text-muted">متوسط نتائجك</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-users fa-2x text-success mb-3"></i>
+                    <h4 class="fw-bold">المتوسط العام</h4>
+                    <h2 class="text-success">{{ "%.1f"|format(global_avg or 0) }}</h2>
+                    <p class="text-muted">متوسط جميع المستخدمين</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-trophy fa-2x text-warning mb-3"></i>
+                    <h4 class="fw-bold">أفضل نتيجة</h4>
+                    <h2 class="text-warning">{{ "%.1f"|format(user_best or 0) }}</h2>
+                    <p class="text-muted">أعلى نتيجة حققتها</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Trend -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        اتجاه الأداء عبر الزمن
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" width="400" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ranking -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-medal me-2"></i>
+                        ترتيبك العام
+                    </h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-1 text-info fw-bold">{{ user_rank or "N/A" }}</div>
+                    <p class="lead">من أصل {{ total_users }} مستخدم</p>
+                    {% if user_rank and total_users %}
+                    {% set percentile = ((total_users - user_rank + 1) / total_users * 100) %}
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-info" style="width: {{ percentile }}%"></div>
+                    </div>
+                    <p class="text-muted">أنت في أفضل {{ "%.0f"|format(percentile) }}% من المستخدمين</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-target me-2"></i>
+                        أهداف التحسين
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if user_avg and global_avg %}
+                    {% set improvement_needed = global_avg - user_avg %}
+                    {% if improvement_needed > 0 %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-arrow-up me-2"></i>
+                        تحتاج لتحسين أدائك بـ {{ "%.1f"|format(improvement_needed) }} نقطة للوصول للمتوسط العام
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        ممتاز! أداؤك أعلى من المتوسط العام بـ {{ "%.1f"|format(-improvement_needed) }} نقطة
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    
+                    <h6 class="fw-bold">نصائح للتحسين:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-clock text-primary me-2"></i>زيادة ساعات الدراسة</li>
+                        <li><i class="fas fa-bed text-info me-2"></i>تحسين جودة النوم</li>
+                        <li><i class="fas fa-running text-success me-2"></i>المشاركة في الأنشطة</li>
+                        <li><i class="fas fa-file-alt text-warning me-2"></i>ممارسة المزيد من الأسئلة</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Comparison -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        مقارنة تفصيلية للعوامل
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary">متوسط ساعات الدراسة:</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>أنت: {{ user_factors.hours_studied or 0 }} ساعات</span>
+                                <span>العام: {{ global_factors.hours_studied or 0 }} ساعات</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-primary" style="width: {{ (user_factors.hours_studied or 0) / 12 * 100 }}%"></div>
+                            </div>
+
+                            <h6 class="fw-bold text-success">متوسط الدرجات السابقة:</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>أنت: {{ user_factors.previous_scores or 0 }}</span>
+                                <span>العام: {{ global_factors.previous_scores or 0 }}</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-success" style="width: {{ (user_factors.previous_scores or 0) }}%"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-info">متوسط ساعات النوم:</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>أنت: {{ user_factors.sleep_hours or 0 }} ساعات</span>
+                                <span>العام: {{ global_factors.sleep_hours or 0 }} ساعات</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-info" style="width: {{ (user_factors.sleep_hours or 0) / 12 * 100 }}%"></div>
+                            </div>
+
+                            <h6 class="fw-bold text-warning">متوسط أوراق الأسئلة:</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>أنت: {{ user_factors.sample_papers or 0 }}</span>
+                                <span>العام: {{ global_factors.sample_papers or 0 }}</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-warning" style="width: {{ (user_factors.sample_papers or 0) / 20 * 100 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Trend Chart
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+const trendChart = new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: {{ trend_labels | tojson | safe }},
+        datasets: [{
+            label: 'أداؤك',
+            data: {{ user_trend | tojson | safe }},
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4
+        }, {
+            label: 'المتوسط العام',
+            data: Array({{ trend_labels | length }}).fill({{ global_avg or 0 }}),
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            borderDash: [5, 5]
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
